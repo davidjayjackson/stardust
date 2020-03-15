@@ -1,0 +1,69 @@
+---
+title: "Spring Cleaning"
+author: "David J Jackson"
+date: "3/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(openxlsx)
+library(plotly)
+```
+
+## Spring Cleaning : Varible Start VAlidation
+
+```{r, echo=FALSE}
+rm(list=ls())
+mydata <-data.table::fread("../db/RS_Eri.csv") %>% 
+  select(JD,Star_Name,Band,Magnitude,Validation_Flag) %>%
+  mutate( JD = as.numeric(JD)) %>%
+  mutate(Ymd =insol::JD(JD,inverse = TRUE)) %>%
+  mutate(Ymd = as.Date(Ymd))  %>%
+  mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
+    filter(Band=="Vis." )
+
+mydata$Star_Name <- "RS_ERI"
+
+## Fun with Moving Averages
+
+mydata$MA <- forecast::ma(mydata$Magnitude,order=3)
+mydata$MA <- round(mydata$MA,digits = 1)
+mydata$Plus <- round(mydata$MA +1,digits = 1)
+mydata$Minus <- round(mydata$MA -1,digits = 1)
+
+
+mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
+  add_lines(x=~Ymd,y=~Plus,name="Mean +1") %>% 
+  add_lines(x=~Ymd,y=~Minus,name="Mean -1") %>%
+   layout(yaxis = list(autorange = "reversed")) %>%
+    layout(title = "3 Day Moving +/- 1")
+
+```
+## Calc Daily Mean 
+
+```{r, echo=FALSE}
+starDust <- mydata %>%
+    group_by(Ymd) %>%
+    summarize(Mean = round(mean(Magnitude),digits=1),
+              Brighter = round(Mean -1,digits = 1),
+              Fainter = round(Mean +1,digits= 1),
+              Obs = n()) %>% 
+    ungroup() %>% 
+    mutate(Verify = case_when(
+      (Brighter <  Mean -1) | (Fainter > Mean + 1) ~ "Yes",TRUE ~ "No")) 
+
+
+
+mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
+  add_lines(data=starDust,x=~Ymd,y=~Fainter,name="Mean +1") %>% 
+  add_lines(data=starDust,x=~Ymd,y=~Brighter,name="Mean -1") %>%
+   layout(yaxis = list(autorange = "reversed")) %>%
+  layout(title = "Daily Means +/- 1")
+```
+```{r}
+starDust %>% filter(Obs >2 & Verify=="Yes") 
+```
+
+

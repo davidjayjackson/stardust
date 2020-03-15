@@ -1,5 +1,5 @@
 ---
-title: "Spring Cleaning"
+title: "Spring Cleaning: Varable Star VAlidation"
 author: "David J Jackson"
 date: "3/13/2020"
 output: html_document
@@ -12,36 +12,41 @@ library(openxlsx)
 library(plotly)
 ```
 
-## Spring Cleaning : Varible Start VAlidation
+# Variable Star: KHI_CYG
 
-```{r, echo=FALSE}
+#### Spring Cleaning : Varible Start Validation
+
+```{r}
 rm(list=ls())
-mydata <-data.table::fread("../db/RS_Eri.csv") %>% 
+mydata <-data.table::fread("../db/khi_Cyg.csv") %>% 
   select(JD,Star_Name,Band,Magnitude,Validation_Flag) %>%
   mutate( JD = as.numeric(JD)) %>%
   mutate(Ymd =insol::JD(JD,inverse = TRUE)) %>%
   mutate(Ymd = as.Date(Ymd))  %>%
   mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
     filter(Band=="Vis." )
-
-mydata$Star_Name <- "RS_ERI"
-
-## Fun with Moving Averages
-
-mydata$MA <- forecast::ma(mydata$Magnitude,order=3)
-mydata$MA <- round(mydata$MA,digits = 1)
-mydata$Plus <- round(mydata$MA +1,digits = 1)
-mydata$Minus <- round(mydata$MA -1,digits = 1)
-
-
-mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
-  add_lines(x=~Ymd,y=~Plus,name="Mean +1") %>% 
-  add_lines(x=~Ymd,y=~Minus,name="Mean -1") %>%
-   layout(yaxis = list(autorange = "reversed")) %>%
-    layout(title = "3 Day Moving +/- 1")
-
+mydata$Star_Name <- "KHI_CYG"
 ```
-## Calc Daily Mean 
+#### Basic Analysis: Star_Name,Band and Validation_Flag
+
+```{r, echo=FALSE}
+mydata %>% group_by(Star_Name) %>% summarise(n())
+mydata %>% group_by(Band) %>% summarise(n())
+mydata %>% group_by(Validation_Flag) %>% summarise(n())
+```
+
+#### Visual Analysis of Validation Flag(s) 
+Validation Flag(s): (U)Not VAlidated ,(Z)pre-validation,(V)alidated, (T)Failed
+
+
+```{r echo=FALSE}
+plot_ly(mydata,x=~Ymd,y=~Magnitude,type="scatter",mode="markers",symbol=~Validation_Flag,colors="Set1") %>%
+  layout(yaxis = list(autorange = "reversed")) %>%
+  layout(title = "Plot of Observation by Validation Flags")
+ 
+```
+
+#### Using Daily Means to Validate Variable Stars
 
 ```{r, echo=FALSE}
 starDust <- mydata %>%
@@ -52,18 +57,33 @@ starDust <- mydata %>%
               Obs = n()) %>% 
     ungroup() %>% 
     mutate(Verify = case_when(
-      (Brighter <  Mean -1) | (Fainter > Mean + 1) ~ "Yes",TRUE ~ "No")) 
-
-
-
+      (Brighter <  Mean -1) | (Fainter > Mean + 1) ~ "Yes",TRUE ~ "No")) %>%
+      filter(Obs >=3 & Verify=="Yes") 
+starDust
+```
+```{r, echo=FALSE}
 mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
   add_lines(data=starDust,x=~Ymd,y=~Fainter,name="Mean +1") %>% 
   add_lines(data=starDust,x=~Ymd,y=~Brighter,name="Mean -1") %>%
    layout(yaxis = list(autorange = "reversed")) %>%
   layout(title = "Daily Means +/- 1")
 ```
-```{r}
-starDust %>% filter(Obs >2 & Verify=="Yes") 
+
+#### VAlidation Using (3 DAy) Moving Averages
+
+```{r, echo=FALSE}
+mydata$MA <- forecast::ma(mydata$Magnitude,order=3)
+mydata$MA <- round(mydata$MA,digits = 1)
+mydata$Plus <- round(mydata$MA +1,digits = 1)
+mydata$Minus <- round(mydata$MA -1,digits= 1)
+
+mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
+  add_lines(x=~Ymd,y=~Plus,name="Mean +1") %>% 
+  add_lines(x=~Ymd,y=~Minus,name="Mean -1") %>%
+   layout(yaxis = list(autorange = "reversed")) %>%
+    layout(title = "3 Day Moving +/- 1")
+
 ```
+
 
 

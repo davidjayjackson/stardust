@@ -14,7 +14,7 @@ library(openxlsx)
 library(plotly)
 ```
 
-# Variable Star: KHI_CYG (Jan. 2014 - Mar. 2020)
+### Variable Star: KHI_CYG (Jan. 2014 - Mar. 2020)
 
 
 
@@ -43,8 +43,7 @@ mydata %>% group_by(Band) %>% summarise(n())
 mydata %>% group_by(Validation_Flag) %>% summarise(n())
 ```
 
-
-\newline
+<br>
 
 ```{r, echo=FALSE}
 plot_ly(mydata,x=~Ymd,y=~Magnitude,type="scatter",mode="markers",symbol=~Validation_Flag,colors="Set1") %>%
@@ -76,7 +75,7 @@ mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="mar
   layout(title = "Daily Means +/- 1")
 ```
 
-#### VAlidation Using (3 DAy) Moving Averages
+#### Validation Using (3 DAy) Moving Averages
 
 ```{r, echo=FALSE}
 mydata$MA <- forecast::ma(mydata$Magnitude,order=3)
@@ -91,5 +90,3 @@ mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="mar
     layout(title = "3 Day Moving +/- 1")
 
 ```
-
-

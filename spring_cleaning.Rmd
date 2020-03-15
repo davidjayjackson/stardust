@@ -14,11 +14,11 @@ library(openxlsx)
 library(plotly)
 ```
 
-# Variable Star: KHI_CYG
+# Variable Star: KHI_CYG (Jan. 2014 - Mar. 2020)
 
-#### Spring Cleaning : Varible Start Validation
 
-```{r}
+
+```{r, echo=FALSE}
 rm(list=ls())
 mydata <-data.table::fread("../db/khi_Cyg.csv") %>% 
   select(JD,Star_Name,Band,Magnitude,Validation_Flag) %>%
@@ -33,16 +33,20 @@ mydata$Star_Name <- "KHI_CYG"
 #### Basic Analysis: Star_Name,Band and Validation_Flag
 
 ```{r, echo=FALSE}
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="U","Not VAlidated",mydata$Validation_Flag)
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="Z","pre-validation",mydata$Validation_Flag)
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="V","Validated",mydata$Validation_Flag)
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="T","Failed",mydata$Validation_Flag)
+
 mydata %>% group_by(Star_Name) %>% summarise(n())
 mydata %>% group_by(Band) %>% summarise(n())
 mydata %>% group_by(Validation_Flag) %>% summarise(n())
 ```
 
-#### Visual Analysis of Validation Flag(s) 
-Validation Flag(s): (U)Not VAlidated ,(Z)pre-validation,(V)alidated, (T)Failed
 
+\newline
 
-```{r echo=FALSE}
+```{r, echo=FALSE}
 plot_ly(mydata,x=~Ymd,y=~Magnitude,type="scatter",mode="markers",symbol=~Validation_Flag,colors="Set1") %>%
   layout(yaxis = list(autorange = "reversed")) %>%
   layout(title = "Plot of Observation by Validation Flags")
@@ -82,12 +86,10 @@ mydata$Minus <- round(mydata$MA -1,digits= 1)
 
 mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
   add_lines(x=~Ymd,y=~Plus,name="Mean +1") %>% 
-  add_lines(x=~Ymd,y=~MA,name="Mov Avg.") %>%
-  add_lines(x=~Ymd,y=~Minus,name="Mean -1") %>%
+  add_lines(x=~Ymd,y=~Minus,name="Mean -1.") %>%
    layout(yaxis = list(autorange = "reversed")) %>%
     layout(title = "3 Day Moving +/- 1")
 
 ```
-
 
 

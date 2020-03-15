@@ -12,6 +12,10 @@ mydata <-data.table::fread("../db/khi_Cyg.csv") %>%
     filter(Band=="Vis." )
 
 mydata$Star_Name <- "KHI_CYG"
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="U","Not VAlidated",mydata$Validation_Flag)
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="Z","pre-validation",mydata$Validation_Flag)
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="V","Validated",mydata$Validation_Flag)
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="T","Failed",mydata$Validation_Flag)
 
 
 mydata %>% group_by(Star_Name) %>% summarise(n())
@@ -22,7 +26,7 @@ mydata %>% group_by(Validation_Flag) %>% summarise(n())
 ##
 plot_ly(mydata,x=~Ymd,y=~Magnitude,type="scatter",mode="markers",symbol=~Validation_Flag,colors="Set1") %>%
   layout(yaxis = list(autorange = "reversed")) %>%
-  layout(title = "Plot of Observation by Validation Flags\n (U)Not VAlidated ,(Z)pre-validation,(V)alidated, (T)Failed ")
+  layout(title = "Plot of Observation by Validation Flags ")
   
 
 ## Fun with Moving Averages

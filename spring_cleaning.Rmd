@@ -1,8 +1,10 @@
 ---
-title: "Spring Cleaning: Varable Star VAlidation"
+title: 'Spring Cleaning: Varable Star Validation'
 author: "David J Jackson"
 date: "3/13/2020"
-output: html_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE, echo=FALSE}
@@ -27,6 +29,7 @@ mydata <-data.table::fread("../db/khi_Cyg.csv") %>%
     filter(Band=="Vis." )
 mydata$Star_Name <- "KHI_CYG"
 ```
+
 #### Basic Analysis: Star_Name,Band and Validation_Flag
 
 ```{r, echo=FALSE}
@@ -59,7 +62,7 @@ starDust <- mydata %>%
     mutate(Verify = case_when(
       (Brighter <  Mean -1) | (Fainter > Mean + 1) ~ "Yes",TRUE ~ "No")) %>%
       filter(Obs >=3 & Verify=="Yes") 
-starDust
+starDust 
 ```
 ```{r, echo=FALSE}
 mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
@@ -79,6 +82,7 @@ mydata$Minus <- round(mydata$MA -1,digits= 1)
 
 mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
   add_lines(x=~Ymd,y=~Plus,name="Mean +1") %>% 
+  add_lines(x=~Ymd,y=~MA,name="Mov Avg.") %>%
   add_lines(x=~Ymd,y=~Minus,name="Mean -1") %>%
    layout(yaxis = list(autorange = "reversed")) %>%
     layout(title = "3 Day Moving +/- 1")

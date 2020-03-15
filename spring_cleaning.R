@@ -11,7 +11,7 @@ mydata <-data.table::fread("../db/khi_Cyg.csv") %>%
   mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
     filter(Band=="Vis." )
 
-# mydata$Star_Name <- "R_AUR"
+mydata$Star_Name <- "KHI_CYG"
 
 
 mydata %>% group_by(Star_Name) %>% summarise(n())

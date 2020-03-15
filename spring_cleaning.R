@@ -3,7 +3,7 @@ library(openxlsx)
 library(plotly)
 
 rm(list=ls())
-mydata <-data.table::fread("../db/khi_Cyg.csv") %>% 
+mydata <-data.table::fread("../db/R_Cyg.csv") %>% 
   select(JD,Star_Name,Band,Magnitude,Validation_Flag) %>%
   mutate( JD = as.numeric(JD)) %>%
   mutate(Ymd =insol::JD(JD,inverse = TRUE)) %>%
@@ -11,7 +11,7 @@ mydata <-data.table::fread("../db/khi_Cyg.csv") %>%
   mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
     filter(Band=="Vis." )
 
-mydata$Star_Name <- "KHI_CYG"
+mydata$Star_Name <- "T_CAM"
 mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="U","Not VAlidated",mydata$Validation_Flag)
 mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="Z","pre-validation",mydata$Validation_Flag)
 mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="V","Validated",mydata$Validation_Flag)
@@ -29,11 +29,7 @@ plot_ly(mydata,x=~Ymd,y=~Magnitude,type="scatter",mode="markers",symbol=~Validat
   layout(title = "Plot of Observation by Validation Flags ")
   
 
-## Fun with Moving Averages
-mydata$MA <- forecast::ma(mydata$Magnitude,order=3)
-mydata$MA <- round(mydata$MA,digits = 1)
-mydata$Plus <- round(mydata$MA +1,digits = 1)
-mydata$Minus <- round(mydata$MA -1,digits= 1)
+
 
 starDust <- mydata %>%
     group_by(Ymd) %>%
@@ -59,6 +55,11 @@ mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="mar
   layout(title = "Daily Means +/- 1")
   
 ## Plotly plot of 3 day moving average
+## Fun with Moving Averages
+mydata$MA <- forecast::ma(mydata$Magnitude,order=3)
+mydata$MA <- round(mydata$MA,digits = 1)
+mydata$Plus <- round(mydata$MA +1,digits = 1)
+mydata$Minus <- round(mydata$MA -1,digits= 1)
 mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
   add_lines(x=~Ymd,y=~Plus,name="Mean +1") %>% 
   add_lines(x=~Ymd,y=~Minus,name="Mean -1") %>%

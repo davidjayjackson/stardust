@@ -40,7 +40,7 @@ mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="T","Failed",mydata$Vali
 
 mydata %>% group_by(Star_Name) %>% summarise(n())
 mydata %>% group_by(Band) %>% summarise(n())
-mydata %>% group_by(Validation_Flag) %>% summarise(n())
+# mydata %>% group_by(Validation_Flag) %>% summarise(n())
 ```
 
 <br>

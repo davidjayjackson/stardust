@@ -8,7 +8,8 @@ output:
 ---
 
 ```{r setup, include=FALSE, echo=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.width=8, fig.height=6)
 library(tidyverse)
 library(openxlsx)
 library(plotly)
@@ -38,9 +39,9 @@ mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="Z","pre-validation",myd
 mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="V","Validated",mydata$Validation_Flag)
 mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="T","Failed",mydata$Validation_Flag)
 
-mydata %>% group_by(Star_Name) %>% summarise(n())
-mydata %>% group_by(Band) %>% summarise(n())
-mydata %>% group_by(Validation_Flag) %>% summarise(n())
+mydata %>% group_by(Star_Name) %>% summarise(Count = n())
+mydata %>% group_by(Band) %>% summarise(Count = n())
+mydata %>% group_by(Validation_Flag) %>% summarise(Count = n())
 ```
 
 
@@ -64,7 +65,7 @@ starDust <- mydata %>%
     mutate(Verify = case_when(
       (Brighter <  Mean -1) | (Fainter > Mean + 1) ~ "Yes",TRUE ~ "No")) %>%
       filter(Obs >=3 & Verify=="Yes") 
-starDust 
+
 ```
 ```{r, echo=FALSE}
 mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
@@ -73,6 +74,10 @@ mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="mar
    layout(yaxis = list(autorange = "reversed")) %>%
   layout(title = "Daily Means +/- 1")
 ```
+```{r}
+starDust %>% DT::datatable()
+```
+
 
 #### Validation Using (3 DAy) Moving Averages
 

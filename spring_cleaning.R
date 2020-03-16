@@ -1,6 +1,7 @@
 library(tidyverse)
 library(openxlsx)
 library(plotly)
+library(lubridate)
 
 rm(list=ls())
 mydata <-data.table::fread("../db/R_Hya.csv") %>% 
@@ -77,3 +78,9 @@ mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="mar
   add_lines(x=~Ymd,y=~Minus,name="Mean -1") %>%
   layout(yaxis = list(autorange = "reversed")) %>%
   layout(title = "7 Day Moving Average +/- 1")
+
+# Count number of Observations by Month
+
+monthly_counts <- mydata %>% group_by(Monthly = floor_date(Ymd,"month")) %>% 
+        summarise(Count =n()) 
+monthly_counts %>% plot_ly() %>% add_bars(x=~Monthly,y=~Count) %>% layout(title = "Number of Observations by Month")

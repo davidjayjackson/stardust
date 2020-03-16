@@ -11,8 +11,11 @@ output:
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(fig.width=8, fig.height=6)
 library(tidyverse)
-library(openxlsx)
 library(plotly)
+library(insol)
+library(forecast)
+library(DT)
+library(data.table)
 ```
 
 ### Variable Star: R_HYA (Jan. 2014 - Mar. 2020)

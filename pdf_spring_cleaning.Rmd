@@ -1,0 +1,89 @@
+---
+title: 'Spring Cleaning: Varable Star Validation'
+author: "David J Jackson"
+date: "3/13/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(openxlsx)
+library(plotly)
+```
+
+### Variable Star: KHI_CYG (Jan. 2014 - Mar. 2020)
+
+
+
+```{r, echo=FALSE}
+rm(list=ls())
+mydata <-data.table::fread("../db/R_Hya.csv") %>% 
+  select(JD,Star_Name,Band,Magnitude,Validation_Flag) %>%
+  mutate( JD = as.numeric(JD)) %>%
+  mutate(Ymd =insol::JD(JD,inverse = TRUE)) %>%
+  mutate(Ymd = as.Date(Ymd))  %>%
+  mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
+    filter(Band=="Vis." )
+mydata$Star_Name <- "R_HYA"
+```
+
+#### Basic Analysis: Star_Name,Band and Validation_Flag
+
+```{r, echo=FALSE}
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="U","Not VAlidated",mydata$Validation_Flag)
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="Z","pre-validation",mydata$Validation_Flag)
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="V","Validated",mydata$Validation_Flag)
+mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="T","Failed",mydata$Validation_Flag)
+
+mydata %>% group_by(Star_Name) %>% summarise(n())
+mydata %>% group_by(Band) %>% summarise(n())
+mydata %>% group_by(Validation_Flag) %>% summarise(n())
+```
+
+
+```{r, echo=FALSE}
+ggplot(mydata) + geom_point(aes(x=Ymd,y=Magnitude,col=Validation_Flag))
+ 
+```
+
+#### Using Daily Means to Validate Variable Stars
+
+```{r, echo=FALSE}
+starDust <- mydata %>%
+    group_by(Ymd) %>%
+    summarize(Mean = round(mean(Magnitude),digits=1),
+              Brighter = round(Mean -1,digits = 1),
+              Fainter = round(Mean +1,digits= 1),
+              Obs = n()) %>% 
+    ungroup() %>% 
+    mutate(Verify = case_when(
+      (Brighter <  Mean -1) | (Fainter > Mean + 1) ~ "Yes",TRUE ~ "No")) %>%
+      filter(Obs >=3 & Verify=="Yes") 
+starDust 
+```
+```{r, echo=FALSE}
+
+ggplot() + geom_point(data=mydata,aes(x=Ymd,y=Magnitude,col="Magnitude")) +
+      geom_line(data=starDust,aes(x=Ymd,y=Fainter,col="Fainter")) +
+      geom_line(data=starDust,aes(x=Ymd,y=Brighter,col="Brighter")) +
+      labs(title = "Validation Using Daily Mean (magnitude)")
+```
+
+#### Validation Using (3 DAy) Moving Averages
+
+```{r, echo=FALSE}
+mydata$MA <- forecast::ma(mydata$Magnitude,order=3)
+mydata$MA <- round(mydata$MA,digits = 1)
+mydata$Plus <- round(mydata$MA +1,digits = 1)
+mydata$Minus <- round(mydata$MA -1,digits= 1)
+
+mydata %>% ggplot() +geom_point(aes(x=Ymd,y=Magnitude,col="Observed")) +
+  geom_line(aes(x=Ymd,y=Plus,col="Mean +1")) +
+  geom_line(aes(x=Ymd,y=Minus,col="Mean -1")) +
+  labs(title="Validation with Moving (3 Days) Averages")
+   
+```

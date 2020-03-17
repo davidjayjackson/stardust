@@ -1,5 +1,5 @@
 ---
-title: "Sprint Cleaning: Variable Star Validation"
+title: "Spring Cleaning: Variable Star Validation"
 author: "David J Jackson"
 date: "3/15/2020"
 output:
@@ -18,11 +18,12 @@ library(DT)
 library(data.table)
 ```
 
-### Variable Star: R_HYA (Jan. 2014 - Mar. 2020)
+### Variable Star: S_PER (Jan. 2014 - Mar. 2020)
 
 
 
 ```{r, echo=FALSE}
+dev.off()
 rm(list=ls())
 mydata <-data.table::fread("../db/R_Hya.csv") %>% 
   select(JD,Star_Name,Band,Magnitude,Validation_Flag) %>%
@@ -31,7 +32,7 @@ mydata <-data.table::fread("../db/R_Hya.csv") %>%
   mutate(Ymd = as.Date(Ymd))  %>%
   mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
     filter(Band=="Vis." )
-mydata$Star_Name <- "KHI_CYG"
+mydata$Star_Name <- "S_PER"
 ```
 
 #### Basic Analysis: Star_Name,Band and Validation_Flag

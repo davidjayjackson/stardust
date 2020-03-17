@@ -1,10 +1,10 @@
 library(tidyverse)
-library(openxlsx)
 library(plotly)
 library(lubridate)
+library(pracma)
 
 rm(list=ls())
-mydata <-data.table::fread("../db/R_Hya.csv") %>% 
+mydata <- read_csv("../db/R_LEO.csv") %>% 
   select(JD,Star_Name,Band,Magnitude,Validation_Flag) %>%
   mutate( JD = as.numeric(JD)) %>%
   mutate(Ymd =insol::JD(JD,inverse = TRUE)) %>%
@@ -12,7 +12,7 @@ mydata <-data.table::fread("../db/R_Hya.csv") %>%
   mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
     filter(Band=="Vis." )
 
-mydata$Star_Name <- "R_HYA"
+mydata$Star_Name <- "R_LEO"
 mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="U","Not VAlidated",mydata$Validation_Flag)
 mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="Z","pre-validation",mydata$Validation_Flag)
 mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="V","Validated",mydata$Validation_Flag)
@@ -43,7 +43,7 @@ starDust <- mydata %>%
       (Brighter <  Mean -1) | (Fainter > Mean + 1) ~ "Yes",TRUE ~ "No")) %>%
       filter(Obs >=3 & Verify=="Yes") 
 
-
+starDust %>% View()
 
      
 ##
@@ -84,3 +84,41 @@ mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="mar
 monthly_counts <- mydata %>% group_by(Monthly = floor_date(Ymd,"month")) %>% 
         summarise(Count =n()) 
 monthly_counts %>% plot_ly() %>% add_bars(x=~Monthly,y=~Count) %>% layout(title = "Number of Observations by Month")
+##
+## Scatter Plot of daily mean
+##
+mydata %>% plot_ly(x=~Ymd,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
+  add_trace(data=starDust,x=~Ymd,y=~Fainter,name="Mean +1",type="scatter",mode="markers") %>% 
+  add_trace(data=starDust,x=~Ymd,y=~Brighter,name="Mean -1",type="scatter",mode="markers") %>%
+  layout(yaxis = list(autorange = "reversed")) %>%
+  layout(title = "Daily Means +/- 1")
+
+
+## 30 Day Mean (simple and Moving Average)
+## Plotly plot of 7 day moving average
+monthly_magnitude <- mydata %>% group_by(Monthly = floor_date(Ymd,"month")) %>% 
+  summarise(Thirty = mean(Magnitude))
+
+
+mydata$MA7 <- forecast::ma(mydata$Magnitude,order=30)
+mydata$MA7 <- round(mydata$MA,digits = 1)
+mydata$Plus <- round(mydata$MA7 +1,digits = 1)
+mydata$Minus <- round(mydata$MA7 -1,digits= 1)
+
+## EMA 
+mydata$EMA <- movavg(mydata$Magnitude,30,"e")
+mydata$EMA <- round(mydata$EMA -1,digits= 1)
+##
+mydata %>% plot_ly(x=~Ymd,y=~MA7,name="Moving Average"  ) %>% add_lines()
+  add_lines(data=monthly_magnitude,x=~Monthly,y=~Thirty,name="Simple Average") %>% 
+    layout(yaxis = list(autorange = "reversed")) %>%
+  layout(title = "30 Day Moving Average +/- 1")
+  
+##
+  ## GGPLOt
+  mydata %>% filter(Ymd >="2000-01-01") %>%
+  ggplot() +geom_line(aes(x=Ymd,y=MA7,col="Moving Average")) +
+    geom_line(aes(x=Ymd,y=EMA,col="EMA")) +
+    scale_y_reverse() + geom_smooth(aes(x=Ymd,y=MA7)) +
+    labs(title="R_LEO: 30 Day Averages(Moving vs EMA)",x="Date of Observation",y="Mean Magnitude")
+  

@@ -4,32 +4,39 @@ library(lubridate)
 library(pracma)
 
 rm(list=ls())
-mydata <- read_csv("../db/R_LEO.csv") %>% 
-  select(JD,Star_Name,Band,Magnitude,Validation_Flag) %>%
+mydata <- read_csv("../db/S_CEP.csv") %>% 
+  select(JD,StarName,Band,Magnitude,ValidationFlag) %>%
   mutate( JD = as.numeric(JD)) %>%
+  # mutate(Julian = round(JD)) %>%
   mutate(Ymd =insol::JD(JD,inverse = TRUE)) %>%
   mutate(Ymd = as.Date(Ymd))  %>%
+  mutate(Julian = as.integer(JD)) %>%
+  mutate(Julian = as_factor(Julian)) %>%
   mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
-    filter(Band=="Vis." )
+    filter(Band=="Vis." ) 
 
-mydata$Star_Name <- "R_LEO"
-mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="U","Not VAlidated",mydata$Validation_Flag)
-mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="Z","pre-validation",mydata$Validation_Flag)
-mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="V","Validated",mydata$Validation_Flag)
-mydata$Validation_Flag <-ifelse(mydata$Validation_Flag=="T","Failed",mydata$Validation_Flag)
+mydata$StarName <- "S_CEP"
+mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="U","Not VAlidated",mydata$ValidationFlag)
+mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="Z","pre-validation",mydata$ValidationFlag)
+mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="V","Validated",mydata$ValidationFlag)
+mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="T","Failed",mydata$ValidationFlag)
 
 
-mydata %>% group_by(Star_Name) %>% summarise(n())
+mydata %>% group_by(StarName) %>% summarise(n())
 mydata %>% group_by(Band) %>% summarise(n())
-mydata %>% group_by(Validation_Flag) %>% summarise(n())
+mydata %>% group_by(ValidationFlag) %>% summarise(n())
 
 ## PLot of Validation Flags
 ##
-plot_ly(mydata,x=~Ymd,y=~Magnitude,type="scatter",mode="markers",symbol=~Validation_Flag,colors="Set1") %>%
+plot_ly(mydata,x=~Ymd,y=~Magnitude,type="scatter",mode="markers",symbol=~ValidationFlag,colors="Set1") %>%
   layout(yaxis = list(autorange = "reversed")) %>%
   layout(title = "Plot of Observation by Validation Flags ")
-  
 
+## By Julian Date
+
+plot_ly(mydata,x=~Julian,y=~Magnitude,type="scatter",mode="markers",symbol=~ValidationFlag,colors="Set1") %>%
+  layout(yaxis = list(autorange = "reversed")) %>%
+  layout(title = "Plot of Observation by Validation Flags ")
 
 
 starDust <- mydata %>%
@@ -44,6 +51,20 @@ starDust <- mydata %>%
       filter(Obs >=3 & Verify=="Yes") 
 
 starDust %>% View()
+#
+## Table of questionable Observations by Julian Date.
+stardust.jd <- mydata %>%
+  group_by(Julian) %>%
+  summarize(Mean = round(mean(Magnitude),digits=1),
+            Brighter = round(Mean -1,digits = 1),
+            Fainter = round(Mean +1,digits= 1),
+            Obs = n()) %>% 
+  ungroup() %>% 
+  mutate(Verify = case_when(
+    (Brighter <  Mean -1) | (Fainter > Mean + 1) ~ "Yes",TRUE ~ "No")) %>%
+  filter(Obs >=3 & Verify=="Yes") 
+
+stardust.jd %>% View()
 
      
 ##

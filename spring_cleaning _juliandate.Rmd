@@ -1,0 +1,103 @@
+---
+title: "Spring Cleaning: Variable Star Validation"
+author: "David J Jackson"
+date: "3/15/2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.width=8, fig.height=6)
+library(tidyverse)
+library(plotly)
+library(insol)
+library(forecast)
+library(DT)
+library(data.table)
+```
+
+### Variable Star: S_PER (Jan. 2014 - Mar. 2020)
+
+```{r, echo=FALSE}
+
+rm(list=ls())
+mydata <-data.table::fread("../db/S_CEP.csv") %>% 
+  # select(JD,StarName,Band,Magnitude,ValidationFlag) %>%
+  mutate( JD = as.numeric(JD)) %>%
+  mutate(Ymd =insol::JD(JD,inverse = TRUE)) %>%
+  mutate(Ymd = as.Date(Ymd))  %>%
+  mutate(Julian = as.integer(JD)) %>%
+  mutate(Julian = as_factor(Julian)) %>%
+  mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
+    filter(Band=="Vis." )
+mydata$Star_Name <- "S_CEP"
+```
+
+#### Basic Analysis: By  Validation_Flag
+
+```{r, echo=FALSE}
+mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="U","Not VAlidated",mydata$ValidationFlag)
+mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="Z","pre-validation",mydata$ValidationFlag)
+mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="V","Validated",mydata$ValidationFlag)
+mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="T","Failed",mydata$ValidationFlag)
+
+# mydata %>% group_by(Star_Name) %>% summarise(Count = n())
+# mydata %>% group_by(Band) %>% summarise(Count = n())
+mydata %>% group_by(ValidationFlag) %>% summarise(Count = n())
+```
+
+
+```{r, echo=FALSE}
+plot_ly(mydata,x=~Julian,y=~Magnitude,type="scatter",mode="markers",symbol=~ValidationFlag,colors="Set1") %>%
+  layout(yaxis = list(autorange = "reversed")) %>%
+  layout(title = "Plot of Observation With Validation Flags\n
+        By Julian Date: Jan. 2014 - Mar. 2020")
+ 
+```
+
+#### Using Daily Means(Julian Date) to Validate Variable Stars
+
+```{r, echo=FALSE}
+starDust <- mydata %>%
+    group_by(Julian) %>%
+    summarize(Mean = round(mean(Magnitude),digits=1),
+              Brighter = round(Mean -1,digits = 1),
+              Fainter = round(Mean +1,digits= 1),
+              Obs = n()) %>% 
+    ungroup() %>% 
+    mutate(Verify = case_when(
+      (Brighter <  Mean -1) | (Fainter > Mean + 1) ~ "Yes",TRUE ~ "No")) %>%
+      filter(Obs >=3 & Verify=="Yes") 
+
+```
+```{r, echo=FALSE}
+mydata %>% plot_ly(x=~Julian,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
+  add_lines(data=starDust,x=~Julian,y=~Fainter,name="Mean +1") %>% 
+  add_lines(data=starDust,x=~Julian,y=~Brighter,name="Mean -1") %>%
+   layout(yaxis = list(autorange = "reversed")) %>%
+  layout(title = "Daily Means +/- 1")
+```
+```{r}
+starDust %>% DT::datatable()
+```
+
+#### Validation Using (3 DAy) Moving Averages Using Julian Dates
+
+```{r, echo=FALSE}
+mydata$MA <- forecast::ma(mydata$Magnitude,order=3)
+mydata$MA <- round(mydata$MA,digits = 1)
+mydata$Plus <- round(mydata$MA +1,digits = 1)
+mydata$Minus <- round(mydata$MA -1,digits= 1)
+```
+```{r}
+mydata %>% plot_ly(x=~Julian,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
+  add_lines(x=~Julian,y=~Plus,name="Mean +1") %>% 
+  add_lines(x=~Julian,y=~Minus,name="Mean -1.") %>%
+   layout(yaxis = list(autorange = "reversed")) %>%
+    layout(title = "3 Day Moving +/- 1")
+
+```
+
+

@@ -16,52 +16,42 @@ library(insol)
 library(forecast)
 library(DT)
 library(data.table)
+library(ggeasy)
 ```
 
-### Variable Star: S_PER (Jan. 2014 - Mar. 2020)
+### Variable Star: khi_Cyg (Jan. 2014 - Mar. 2020)
 
 ```{r, echo=FALSE}
 
 rm(list=ls())
-mydata <-data.table::fread("../db/S_CEP.csv") %>% 
-  # select(JD,StarName,Band,Magnitude,ValidationFlag) %>%
-  mutate( JD = as.numeric(JD)) %>%
-  mutate(Ymd =insol::JD(JD,inverse = TRUE)) %>%
-  mutate(Ymd = as.Date(Ymd))  %>%
-  mutate(Julian = as.integer(JD)) %>%
-  mutate(Julian = as_factor(Julian)) %>%
-  mutate(Magnitude = as.numeric( gsub("<","", Magnitude) ) + 0.99) %>%
-    filter(Band=="Vis." )
-mydata$Star_Name <- "S_CEP"
+mydata <-read_csv("./RT_Cyg.csv",
+                  col_types=cols(JD=col_double(),
+                                 Magnitude=col_number())) 
+
+mydata$Ymd <- JD(mydata$JD,inverse = TRUE)
+mydata$JD <- as.factor(mydata$JD)
+ 
 ```
 
 #### Basic Analysis: By  Validation_Flag
 
 ```{r, echo=FALSE}
-mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="U","Not VAlidated",mydata$ValidationFlag)
-mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="Z","pre-validation",mydata$ValidationFlag)
-mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="V","Validated",mydata$ValidationFlag)
-mydata$ValidationFlag <-ifelse(mydata$ValidationFlag=="T","Failed",mydata$ValidationFlag)
-
-# mydata %>% group_by(Star_Name) %>% summarise(Count = n())
-# mydata %>% group_by(Band) %>% summarise(Count = n())
-mydata %>% group_by(ValidationFlag) %>% summarise(Count = n())
-```
-
-
-```{r, echo=FALSE}
-plot_ly(mydata,x=~Julian,y=~Magnitude,type="scatter",mode="markers",symbol=~ValidationFlag,colors="Set1") %>%
+plot_ly(mydata,x=~JD,y=~Magnitude,type="scatter",mode="markers") %>%
   layout(yaxis = list(autorange = "reversed")) %>%
   layout(title = "Plot of Observation With Validation Flags\n
         By Julian Date: Jan. 2014 - Mar. 2020")
  
+plot_ly(mydata,x=~Ymd,y=~Magnitude,type="scatter",mode="markers") %>%
+  layout(yaxis = list(autorange = "reversed")) %>%
+  layout(title = "Plot of Observation With Validation Flags")
+        
 ```
 
 #### Using Daily Means(Julian Date) to Validate Variable Stars
 
 ```{r, echo=FALSE}
 starDust <- mydata %>%
-    group_by(Julian) %>%
+    group_by(JD) %>%
     summarize(Mean = round(mean(Magnitude),digits=1),
               Brighter = round(Mean -1,digits = 1),
               Fainter = round(Mean +1,digits= 1),
@@ -72,14 +62,7 @@ starDust <- mydata %>%
       filter(Obs >=3 & Verify=="Yes") 
 
 ```
-```{r, echo=FALSE}
-mydata %>% plot_ly(x=~Julian,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
-  add_lines(data=starDust,x=~Julian,y=~Fainter,name="Mean +1") %>% 
-  add_lines(data=starDust,x=~Julian,y=~Brighter,name="Mean -1") %>%
-   layout(yaxis = list(autorange = "reversed")) %>%
-  layout(title = "Daily Means +/- 1")
-```
-```{r}
+```{r,echo=FALSE}
 starDust %>% DT::datatable()
 ```
 
@@ -92,9 +75,9 @@ mydata$Plus <- round(mydata$MA +1,digits = 1)
 mydata$Minus <- round(mydata$MA -1,digits= 1)
 ```
 ```{r}
-mydata %>% plot_ly(x=~Julian,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
-  add_lines(x=~Julian,y=~Plus,name="Mean +1") %>% 
-  add_lines(x=~Julian,y=~Minus,name="Mean -1.") %>%
+mydata %>% plot_ly(x=~JD,y=~Magnitude,name="Magnitude",type="scatter",mode="markers") %>% 
+  add_lines(x=~JD,y=~Plus,name="Mean +1") %>% 
+  add_lines(x=~JD,y=~Minus,name="Mean -1.") %>%
    layout(yaxis = list(autorange = "reversed")) %>%
     layout(title = "3 Day Moving +/- 1")
 
